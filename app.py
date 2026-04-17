@@ -4,7 +4,7 @@ import argparse
 import cloudscraper
 from bs4 import BeautifulSoup
 import yaml
-from mistralai import Mistral
+from mistralai.client import Mistral
 
 # Configuration path
 CONFIG_PATH = 'config.yaml'
