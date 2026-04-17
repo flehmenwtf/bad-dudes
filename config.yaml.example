@@ -1,5 +1,9 @@
 wiki_api_url: "https://villains.fandom.com/api.php"
 target_category: "Category:Villains"
+exclude_categories:
+  - "Category:Anime Villains"
+  - "Category:Real Life Characters"
+  - "Category:Redeemed Villains"
 mistral_api_key: "YOUR_MISTRAL_API_KEY_HERE"
 mistral_model: "mistral-large-latest"
 output_path: "bestiary.md"

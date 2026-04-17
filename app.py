@@ -29,41 +29,62 @@ def save_seen_urls(seen_urls):
     with open(SEEN_URLS_PATH, 'w') as f:
         json.dump(seen_urls, f, indent=4)
 
-def get_villain_pages(api_url, category, seen_urls, needed=10, limit=50):
+from collections import deque
+import time
+
+def get_villain_pages(api_url, start_category, seen_urls, exclude_categories, needed=10, limit=50):
     pages = []
     base_url = api_url.replace('/api.php', '/wiki/')
-
-    params = {
-        "action": "query",
-        "list": "categorymembers",
-        "cmtitle": category,
-        "cmlimit": limit,
-        "format": "json"
-    }
-
     scraper = cloudscraper.create_scraper()
 
-    while len(pages) < needed:
-        response = scraper.get(api_url, params=params)
-        response.raise_for_status()
-        data = response.json()
+    category_queue = deque([start_category])
+    seen_categories = {start_category}
 
-        for member in data.get('query', {}).get('categorymembers', []):
-            title = member['title']
-            if not title.startswith('Category:') and not title.startswith('Template:'):
-                page_url = base_url + title.replace(' ', '_')
-                if page_url not in seen_urls:
-                    pages.append({"title": title, "url": page_url})
-                    if len(pages) >= needed:
-                        break
+    while category_queue and len(pages) < needed:
+        current_category = category_queue.popleft()
+        print(f"Crawling {current_category}...")
 
-        if len(pages) >= needed:
-            break
+        params = {
+            "action": "query",
+            "list": "categorymembers",
+            "cmtitle": current_category,
+            "cmlimit": limit,
+            "format": "json"
+        }
 
-        if 'continue' in data and 'cmcontinue' in data['continue']:
-            params['cmcontinue'] = data['continue']['cmcontinue']
-        else:
-            break
+        while len(pages) < needed:
+            try:
+                response = scraper.get(api_url, params=params)
+                response.raise_for_status()
+                data = response.json()
+            except Exception as e:
+                print(f"  Error fetching API for {current_category}: {e}")
+                break
+
+            for member in data.get('query', {}).get('categorymembers', []):
+                title = member['title']
+
+                if title.startswith('Category:'):
+                    if title not in exclude_categories and title not in seen_categories:
+                        seen_categories.add(title)
+                        category_queue.append(title)
+                elif not title.startswith('Template:') and not title.startswith('File:') and not title.startswith('User:'):
+                    page_url = base_url + title.replace(' ', '_')
+                    if page_url not in seen_urls:
+                        pages.append({"title": title, "url": page_url})
+                        if len(pages) >= needed:
+                            break
+
+            if len(pages) >= needed:
+                break
+
+            if 'continue' in data and 'cmcontinue' in data['continue']:
+                params['cmcontinue'] = data['continue']['cmcontinue']
+                time.sleep(0.5) # rate limit protection
+            else:
+                break
+
+        time.sleep(0.5) # rate limit protection between categories
 
     return pages
 
@@ -268,8 +289,9 @@ def main():
     client = Mistral(api_key=api_key)
     model = config.get('mistral_model', 'mistral-large-latest')
 
-    print(f"Fetching pages from {config['target_category']}...")
-    pages = get_villain_pages(config['wiki_api_url'], config['target_category'], seen_urls)
+    print(f"Fetching pages starting from {config['target_category']}...")
+    exclude_categories = config.get('exclude_categories', [])
+    pages = get_villain_pages(config['wiki_api_url'], config['target_category'], seen_urls, exclude_categories)
 
     processed_count = 0
     new_seen_urls = seen_urls.copy()
