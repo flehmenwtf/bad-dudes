@@ -1,7 +1,7 @@
 import json
 import os
 import argparse
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 import yaml
 from mistralai import Mistral
@@ -32,7 +32,6 @@ def save_seen_urls(seen_urls):
 def get_villain_pages(api_url, category, seen_urls, needed=10, limit=50):
     pages = []
     base_url = api_url.replace('/api.php', '/wiki/')
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 
     params = {
         "action": "query",
@@ -42,8 +41,10 @@ def get_villain_pages(api_url, category, seen_urls, needed=10, limit=50):
         "format": "json"
     }
 
+    scraper = cloudscraper.create_scraper()
+
     while len(pages) < needed:
-        response = requests.get(api_url, params=params, headers=headers)
+        response = scraper.get(api_url, params=params)
         response.raise_for_status()
         data = response.json()
 
@@ -67,8 +68,8 @@ def get_villain_pages(api_url, category, seen_urls, needed=10, limit=50):
     return pages
 
 def scrape_page(url):
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-    response = requests.get(url, headers=headers)
+    scraper = cloudscraper.create_scraper()
+    response = scraper.get(url)
     response.raise_for_status()
 
     soup = BeautifulSoup(response.content, 'html.parser')

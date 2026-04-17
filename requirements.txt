@@ -1,0 +1,4 @@
+beautifulsoup4
+pyyaml
+mistralai>=1.0.0
+cloudscraper
