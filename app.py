@@ -96,6 +96,7 @@ You are an expert at extracting character lore and translating it into three dis
 Read the following raw wiki text for a character named '{title}'.
 
 Extract core traits and translate them into a strict JSON schema with three entries, one for each era.
+If information like Birthday, Dark Secret, or specific numerical stats are missing from the source text, you MUST invent them so they perfectly fit the specified era's theme.
 
 ERA 1: Space Hate (The Flesh Age)
 - Strip away civilization. Everything is biological, violent, primal.
@@ -122,27 +123,48 @@ Return ONLY valid JSON in this exact structure:
 [
   {{
     "era": "Space Hate",
-    "grimdark_name": "...",
-    "physical_description": "...",
-    "motives": "...",
-    "combat_style": "...",
-    "weird_traits": "..."
+    "entity_name": "...",
+    "flavor_text": "...",
+    "hp": 10,
+    "morale": 5,
+    "armor": "-d4",
+    "agi": "+2",
+    "attack": "d8 (Weapon Name)",
+    "se": 50,
+    "shame": 10,
+    "birthday": "...",
+    "dark_secret": "...",
+    "special_mechanics": "..."
   }},
   {{
     "era": "Agis",
-    "grimdark_name": "...",
-    "physical_description": "...",
-    "motives": "...",
-    "combat_style": "...",
-    "weird_traits": "..."
+    "entity_name": "...",
+    "flavor_text": "...",
+    "hp": 10,
+    "morale": 5,
+    "armor": "-d4",
+    "agi": "+2",
+    "attack": "d8 (Weapon Name)",
+    "se": 50,
+    "shame": 10,
+    "birthday": "...",
+    "dark_secret": "...",
+    "special_mechanics": "..."
   }},
   {{
     "era": "Wicca Falls",
-    "grimdark_name": "...",
-    "physical_description": "...",
-    "motives": "...",
-    "combat_style": "...",
-    "weird_traits": "..."
+    "entity_name": "...",
+    "flavor_text": "...",
+    "hp": 10,
+    "morale": 5,
+    "armor": "-d4",
+    "agi": "+2",
+    "attack": "d8 (Weapon Name)",
+    "se": 50,
+    "shame": 10,
+    "birthday": "...",
+    "dark_secret": "...",
+    "special_mechanics": "..."
   }}
 ]
 
@@ -174,23 +196,36 @@ Raw Wiki Text:
 def format_output(client, model, json_data, original_name):
     json_str = json.dumps(json_data, indent=2)
     prompt = f"""
-Take this JSON containing 3 eras of a monster and format it into this exact Markdown structure:
+--- SYSTEM INSTRUCTIONS: TONE OF VOICE ---
+You are operating under two distinct cognitive governors. You must apply them strictly to the corresponding sections of the output.
 
-### [{original_name}]
+GOVERNOR A: NARRATIVE VOICE (Apply ONLY to flavor_text)
+* The 80/20 Rule: 80% of the text must be deadpan, highly readable, and deeply restrained. Observe physical reality and treat the bizarre as mundane. 20% of the text must be a "System 1 Spike"—a sudden eruption of mythic horror, raw emotion, or all-caps chaos.
+* The Lateral Switch: You MUST deploy exactly ONE of the following formatting switches in the flavor text to break the pattern:
+    1. The Clinical Fracture: Substitute a mundane action with a cold metaphor, using [ ] to omit the boring details. (e.g., "He searched the room. [A dull matter of his attention]. The absence hurt like death.")
+    2. The Mundane Echo: React to a massive mythic event with a banal, declarative statement. (e.g., "THE GENTLEMAN WITH FOUR HUNDRED EYES broke through the ceiling. You saw.")
+    3. The Monostich: Drop a single line juxtaposing nature and horror using the : pivot. (e.g., "Autumn moon over the driveway : 12 (twelve) diesel vans filled with blood.")
+    4. The Assault: Pause to hurl a visceral insult at the reader. (e.g., "You look at the swords with the eyes of a sick dog. You are foolish.")
+    5. The -ly: End with a single-word sentence that is an adverb. (e.g., "He pulled out a severed head. Darkly.")
 
-**[Space Hate Name].** HP [X], Morale [X], Armor [X], Attack [X]. SE [X], Shame [X].
-* *Special:* [1-3 concise sentences fitting the Flesh Age].
+GOVERNOR B: TECHNICAL VOICE (Apply to special_mechanics and dark_secret)
+* Cognitive Ease: Use simple, declarative phrasing. Noun, verb, object. No transitional fluff (e.g., never use "Additionally", "Furthermore", or "Once you do this").
+* The Cosmic Scale: Do not anthropomorphize the mechanics. Treat the system with grounded reverence.
+* Induced Strain: If a mechanic causes fatal or massive damage, use direct address and state the consequence bluntly.
+* Mechanics & Formatting Rules:
+    * The Accounting Rule: ANY number used in the text MUST be written as the numeral followed by the spelled-out word in parentheses. (e.g., "The target takes 4 (four) damage", "Lose 12 (twelve) SE").
+    * The Kagikakko Rule: Use Hook Brackets 「 and 」 EXCLUSIVELY for Player mechanical actions or tests (e.g., 「 STR test 」, 「 PRE test 」). Use Double Hook Brackets 『 and 』 for specific items, statuses, or weapons (e.g., 『 Rusted Sword 』).
+    * The Exclamation Rule: You may rarely use an exclamation point. If you do, it MUST be immediately followed by the exact string: "ah! Ah! ah!"
 
-**[Agis Name].** HP [X], Morale [X], Armor [X], Attack [X]. SE [X], Shame [X].
-* *Special:* [1-3 concise sentences fitting the Ash Age].
+Take this JSON containing 3 eras of a monster and format it into this exact Markdown structure for each era. Output the 3 eras grouped together separated by a blank line. Do not use standard markdown headings (###) for the creature names.
 
-**[Wicca Falls Name].** HP [X], Morale [X], Armor [X], Attack [X]. SE [X], Shame [X].
-* *Special:* [1-3 concise sentences fitting the Dust Age].
+**[{{entity_name}}].** "{{flavor_text}}", HP {{hp}}, Morale {{morale}}, Armor {{armor}}, AGI {{agi}}, Attack {{attack}}. SE {{se}}, Shame {{shame}}.
+* *Birthday:* {{birthday}}
+* *Dark Secret:* {{dark_secret}}
+* *Special:* {{special_mechanics}}
 
 Rules:
-1. Replace [X] with appropriate numbers/dice rolls (e.g., 10, d4, d6, 1, 2) that fit the monster's lore.
-2. Keep the 'Special' section under 120 words per era block. Terse, bizarre, compact.
-3. Output ONLY the final Markdown text. No conversational filler.
+1. Output ONLY the final Markdown text. No conversational filler.
 
 JSON Data:
 {json_str}
